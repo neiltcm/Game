@@ -13,19 +13,26 @@ public abstract class Game extends Canvas {
 	
 	private JFrame frame;
 	private Thread thread;
+	private FPSCounter counter;
+	private boolean running;
+	
 	private int width;
 	private int height;
 	private String title;
-	private boolean running;
 
-	public Game(String title, int width, int height) {
+	public Game(String title, int width, int height, Double fps) {
 		this.title = title;
 		this.width = width;
 		this.height = height;
+		if (fps == null) {
+			counter = new FPSCounter();
+		} else {
+			counter = new FPSCounter(fps);
+		}
 	}
 	
 	public Game() {
-		this("Game", 640, 480);
+		this("Game", 640, 480, null);
 	}
 	
 	private void createWindow() {
@@ -61,7 +68,12 @@ public abstract class Game extends Canvas {
 	public final void loop()
     {
         while(running) {
-        	render();
+        	counter.tick();
+        	if (counter.updateAllowed()) {
+        		render();
+        		
+        		counter.refreshStatus();
+        	}
         }
     }
 	
