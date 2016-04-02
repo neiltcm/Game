@@ -5,8 +5,14 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 
 import javax.swing.JFrame;
+
+import engine.graphics.Screen;
+import engine.graphics.Sprite;
+import engine.graphics.SpriteSheet;
 
 public abstract class Game extends Canvas {
 	private static final long serialVersionUID = 1L;
@@ -14,11 +20,16 @@ public abstract class Game extends Canvas {
 	private JFrame frame;
 	private Thread thread;
 	private FPSCounter counter;
+	protected Screen screen;
 	private boolean running;
 	
 	private int width;
 	private int height;
 	private String title;
+	private BufferStrategy buffer;
+	
+	private BufferedImage image;
+	private int[] pixels;
 
 	public Game(String title, int width, int height, Double fps) {
 		this.title = title;
@@ -29,6 +40,10 @@ public abstract class Game extends Canvas {
 		} else {
 			counter = new FPSCounter(fps);
 		}
+		image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+		
+		this.screen = new Screen(width, height);
 	}
 	
 	public Game() {
@@ -70,16 +85,16 @@ public abstract class Game extends Canvas {
         while(running) {
         	counter.tick();
         	if (counter.updateAllowed()) {
-        		render();
+        		renderWrapper();
         		
         		counter.refreshStatus();
         	}
         }
     }
 	
-	private void render() {
+	private void renderWrapper() {
 		// creating buffer strategy
-		BufferStrategy buffer = getBufferStrategy();
+		buffer = getBufferStrategy();
 		if (buffer == null) {
 			createBufferStrategy(3);
 			return;
@@ -87,11 +102,22 @@ public abstract class Game extends Canvas {
 		
 		// creating rendering objects
 		Graphics graphics = buffer.getDrawGraphics();
-		graphics.setColor(Color.BLACK);
-		graphics.fillRect(0, 0, getWidth(), getHeight());
+		
+		// implement graphics behavior by manipulating pixels array
+		render();
+		
+		int[] screenPixels = screen.getPixels();
+		for (int i = 0; i < screenPixels.length; i++) {
+			pixels[i] = screenPixels[i];	
+		}
+		
+		graphics.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+		
 		graphics.dispose();
 		buffer.show();
 	}
+	
+	public abstract void render();
 	
 	public final void run() {
 		try {
